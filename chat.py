@@ -7,9 +7,9 @@ Flow per question:
   3. LLM summarizes the merged results with citations (streamed)
 
 Usage:
-    python scripts/chat.py                      # uses default model (gemma3:4b)
-    python scripts/chat.py --model qwen2.5:3b   # faster, slightly lower quality
-    python scripts/chat.py --model llama3.2:3b   # alternative
+    python chat.py                      # uses default model (gemma3:4b)
+    python chat.py --model qwen2.5:3b   # faster, slightly lower quality
+    python chat.py --model llama3.2:3b   # alternative
 """
 import argparse
 import itertools
@@ -79,7 +79,7 @@ or offer to elaborate, as there is no follow-up conversation"""
 # ---------------------------------------------------------------------------
 # Search backend
 # ---------------------------------------------------------------------------
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from egw_corpus.vector_store import QdrantIndexer  # noqa: E402
 
 _indexer_cache: dict[str, QdrantIndexer] = {}

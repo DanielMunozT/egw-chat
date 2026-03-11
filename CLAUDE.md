@@ -106,7 +106,7 @@ If the user wants to use this package fully offline (without an AI agent like Cl
    - **16+ GB RAM or GPU**: `ollama pull gemma3:12b` or `qwen2.5:7b`
    - **8-16 GB RAM, no GPU**: `ollama pull gemma3:4b` (default, best quality) or `qwen2.5:3b` (faster)
    - **< 8 GB RAM**: `ollama pull qwen2.5:3b` (minimum viable)
-3. Run: `python scripts/chat.py` (or `python scripts/chat.py --model <model>`)
+3. Run: `python chat.py` (or `python chat.py --model <model>`)
 
 The chat script auto-detects installed languages and handles search + summarization.
 

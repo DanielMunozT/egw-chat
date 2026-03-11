@@ -178,14 +178,14 @@ python start.py
 2. Run offline chat:
 
 ```bash
-python scripts/chat.py
+python chat.py
 ```
 
 Or choose a model explicitly:
 
 ```bash
-python scripts/chat.py --model qwen2.5:3b
-python scripts/chat.py --model gemma3:4b
+python chat.py --model qwen2.5:3b
+python chat.py --model gemma3:4b
 ```
 
 The package already documents this in `README.md`, `GEMINI.md`, and `scripts/chat.py`.

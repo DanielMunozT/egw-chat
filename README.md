@@ -147,7 +147,7 @@ egw-chat/
 ├── GEMINI.md                # Google Gemini instructions
 ├── egw_corpus/              # Python search library
 ├── scripts/search.py        # CLI search tool
-├── scripts/chat.py          # Offline chat with local LLM
+├── chat.py                  # Offline chat with local LLM
 ├── books/<lang>/*.txt       # Full text of each book (downloaded)
 └── snapshots/*.snapshot     # Pre-built vector DB snapshots (downloaded)
 ```
@@ -199,13 +199,13 @@ You can chat with the EGW corpus fully offline using a local AI model — no int
 ```bash
 source venv/bin/activate
 source .env
-python scripts/chat.py
+python chat.py
 ```
 
 Use `--model` to try different models:
 
 ```bash
-python scripts/chat.py --model qwen2.5:3b    # faster on limited hardware
+python chat.py --model qwen2.5:3b    # faster on limited hardware
 ```
 
 ## Troubleshooting
