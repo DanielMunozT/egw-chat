@@ -1,0 +1,22 @@
+# Data directories (downloaded by setup.py --lang)
+snapshots/
+books/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+
+# Qdrant local storage
+.qdrant_storage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Gemini
+.gemini/
