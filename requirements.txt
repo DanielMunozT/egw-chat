@@ -1,4 +1,4 @@
 qdrant-client
-fastembed
+sentence-transformers
 requests
 python-docx

@@ -121,11 +121,11 @@ def setup_env_file():
 def download_embedding_model(venv_dir: Path):
     """Pre-download the embedding model."""
     python = get_python(venv_dir)
-    print("Downloading embedding model (first run only, ~120MB)...")
+    print("Downloading embedding model (first run only, ~2GB)...")
     subprocess.run([
         python, "-c",
-        "from fastembed import TextEmbedding; "
-        "TextEmbedding(model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')",
+        "from sentence_transformers import SentenceTransformer; "
+        "SentenceTransformer('BAAI/bge-m3')",
     ], check=True, capture_output=True)
     print("[OK] Embedding model ready")
 

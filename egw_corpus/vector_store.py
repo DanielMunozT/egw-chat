@@ -27,7 +27,7 @@ class QdrantIndexer:
 
     COLLECTION_PREFIX = "egw_corpus"
     DEFAULT_QDRANT_URL = "http://localhost:6333"
-    DEFAULT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    DEFAULT_MODEL = "BAAI/bge-m3"
 
     def __init__(
         self,
@@ -50,14 +50,34 @@ class QdrantIndexer:
         self.vector_size = int(vector_size or 0)
         self.qdrant_url = qdrant_url or os.getenv("QDRANT_URL", "") or self.DEFAULT_QDRANT_URL
         self.client = QdrantClient(url=self.qdrant_url, timeout=60)
+        self.embedder = self._init_embedder()
+
+    def _init_embedder(self) -> typing.Any:
+        """Initialize embedding model.  Tries sentence-transformers first
+        (supports bge-m3), falls back to fastembed."""
+        try:
+            from sentence_transformers import SentenceTransformer  # type: ignore
+
+            model = SentenceTransformer(self.embedding_model)
+
+            class _STAdapter:
+                def __init__(self, m: typing.Any) -> None:
+                    self._m = m
+                def embed(self, texts: list[str]) -> list[typing.Any]:
+                    return self._m.encode(
+                        texts, batch_size=64, show_progress_bar=False,
+                    ).tolist()
+
+            return _STAdapter(model)
+        except ImportError:
+            pass
 
         try:
             from fastembed import TextEmbedding  # type: ignore
         except Exception as exc:
             raise RuntimeError(
-                "fastembed is required. Install: pip install fastembed"
+                "sentence-transformers or fastembed is required."
             ) from exc
-        # Use GPU if available (fastembed-gpu with onnxruntime-gpu)
         providers = None
         try:
             import onnxruntime
@@ -68,7 +88,7 @@ class QdrantIndexer:
         kwargs: dict[str, typing.Any] = {"model_name": self.embedding_model}
         if providers:
             kwargs["providers"] = providers
-        self.embedder = TextEmbedding(**kwargs)
+        return TextEmbedding(**kwargs)
 
     def _point_id(self, raw_id: str) -> str:
         try:
