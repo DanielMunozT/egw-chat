@@ -32,7 +32,7 @@ python setup.py --lang en
 
 This creates a Python virtual environment, installs dependencies, downloads the embedding model (~120MB), and downloads the English language package (books + search index).
 
-Available languages: `en` (English), `es` (Spanish), `pt` (Portuguese), `fr` (French), `ko` (Korean).
+Available languages: `en` (English), `es` (Spanish), `pt` (Portuguese).
 
 To install multiple languages:
 
@@ -86,10 +86,10 @@ python setup.py --lang en
 ## Adding a Language Later
 
 ```bash
-python setup.py --lang fr
+python setup.py --lang es
 ```
 
-This downloads and installs the French data package alongside your existing languages.
+This downloads and installs the Spanish data package alongside your existing languages.
 
 ## Using with AI Agents
 
@@ -112,15 +112,11 @@ Language packages contain the book text files and pre-built Qdrant snapshots for
 | English | `en` | ~2.9 GB |
 | Spanish | `es` | ~295 MB |
 | Portuguese | `pt` | ~238 MB |
-| French | `fr` | ~167 MB |
-| Korean | `ko` | ~116 MB |
 
 Direct download (if needed manually):
 - https://munoz.tplinkdns.com/egw/packages/egw-research-en.tar.gz
 - https://munoz.tplinkdns.com/egw/packages/egw-research-es.tar.gz
 - https://munoz.tplinkdns.com/egw/packages/egw-research-pt.tar.gz
-- https://munoz.tplinkdns.com/egw/packages/egw-research-fr.tar.gz
-- https://munoz.tplinkdns.com/egw/packages/egw-research-ko.tar.gz
 
 ## Search Options
 
@@ -128,7 +124,7 @@ Direct download (if needed manually):
 python scripts/search.py "query" [options]
 
 Options:
-  --lang LANG     Language: en, es, pt, fr, ko, or "all" (default: en)
+  --lang LANG     Language: en, es, pt, or "all" (default: en)
   --book ABBR     Filter by book abbreviation (e.g., GC, DA, SC)
   --top-k N       Number of results (default: 8)
   --json          Output as JSON

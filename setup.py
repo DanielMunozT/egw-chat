@@ -20,7 +20,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 PACKAGE_URL = "https://munoz.tplinkdns.com/egw/packages/egw-research-{lang}.tar.gz"
-AVAILABLE_LANGS = ["en", "es", "pt", "fr", "ko"]
+AVAILABLE_LANGS = ["en", "es", "pt"]
 
 
 def load_env():

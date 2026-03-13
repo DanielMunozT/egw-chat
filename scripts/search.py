@@ -34,7 +34,7 @@ def main():
     parser.add_argument("--top-k", type=int, default=8, help="Number of results (default: 8)")
     parser.add_argument("--book", help="Filter by book abbreviation (e.g. GC, DA, SC)")
     parser.add_argument("--lang", default="en",
-                        help="Language code (en, es, pt, fr, ko) or 'all' for multi-lang search")
+                        help="Language code (en, es, pt) or 'all' for multi-lang search")
     parser.add_argument("--qdrant-url", default=os.getenv("QDRANT_URL", "http://localhost:6333"),
                         help="Qdrant server URL (default: http://localhost:6333)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")

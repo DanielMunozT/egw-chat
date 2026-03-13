@@ -18,8 +18,6 @@ Supported languages:
 - `en` = English
 - `es` = Spanish
 - `pt` = Portuguese
-- `fr` = French
-- `ko` = Korean
 
 ## Copy And Paste This Into Gemini
 
@@ -33,7 +31,7 @@ Important:
 - Before doing anything, ask me these 4 questions:
   1. Am I using Windows or Linux?
   2. Which folder do I want to install EGW Research into?
-  3. Which languages do I want: English (en), Spanish (es), Portuguese (pt), French (fr), Korean (ko)?
+  3. Which languages do I want: English (en), Spanish (es), Portuguese (pt)?
   4. Do I want optional offline AI support now, or should we skip it for now and maybe do it later?
 - After I answer, do the work for me as much as possible.
 

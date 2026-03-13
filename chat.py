@@ -226,7 +226,6 @@ def stream_answer(model: str, messages: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 LANG_NAMES = {
     "en": "English", "es": "Spanish", "pt": "Portuguese",
-    "fr": "French", "ko": "Korean",
 }
 
 

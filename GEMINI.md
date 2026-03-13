@@ -77,7 +77,7 @@ python scripts/search.py "second coming" --json
 3. **Cite** with reference codes (e.g., "GC 299.1") from the metadata fields
 4. **Expand context** by reading the full book file from `books/<lang>/`
 5. **Cross-reference** by searching related terms across multiple queries
-6. Use `--lang` to search corpora in Spanish, Portuguese, French, or Korean
+6. Use `--lang` to search corpora in Spanish or Portuguese
 
 ## Comprehensive Research with Sub-Agents
 
