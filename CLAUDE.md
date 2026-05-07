@@ -54,7 +54,7 @@ python scripts/search.py "su consulta" --lang es
 python scripts/search.py "query" --lang all
 
 # Filter by book
-python scripts/search.py "health reform" --book MH --top-k 10
+python scripts/search.py "health reform" --book MH --page-size 10
 
 # JSON output (for processing results)
 python scripts/search.py "second coming" --json
@@ -62,8 +62,8 @@ python scripts/search.py "second coming" --json
 
 ## Architecture
 
-- `egw_corpus/vector_store.py` — Qdrant client + local embeddings (bge-m3)
-- `scripts/search.py` — CLI search tool (`--lang`, `--book`, `--top-k`, `--json`)
+- `egw_corpus/vector_store.py` — Qdrant client + OpenAI query embeddings
+- `scripts/search.py` — CLI search tool (`--lang`, `--book`, `--page-size`, `--page`, `--json`)
 - `snapshots/` — Pre-built Qdrant snapshots (auto-restored by `start.py`)
 - `books/<lang>/` — Raw text files of each book (with reference codes)
 - `books/<lang>/` filenames indicate book abbreviations (e.g., `GC.txt` = The Great Controversy)
@@ -82,7 +82,7 @@ When the user asks about Ellen White's writings:
 ## Environment
 
 - **Required**: Qdrant running (`python start.py`)
-- Embeddings are local (BAAI/bge-m3) — no API key needed
+- `OPENAI_API_KEY` is required for search queries
 - Collections are named `egw_corpus_<lang>` (e.g., `egw_corpus_en`, `egw_corpus_es`)
 
 ## Comprehensive Research with Sub-Agents
@@ -90,7 +90,7 @@ When the user asks about Ellen White's writings:
 For thorough topical research, use sub-agents to run multiple Qdrant searches in parallel. This keeps your main context clean for synthesis while maximizing coverage:
 
 1. **Spawn 2–3 general-purpose sub-agents in parallel**, each with different query phrasings
-2. Each sub-agent runs: `source venv/bin/activate && source .env && python scripts/search.py "query" --top-k 15 --json`
+2. Each sub-agent runs: `source venv/bin/activate && source .env && python scripts/search.py "query" --page-size 15 --json`
 3. Vary the phrasing across agents (e.g., synonyms, paraphrases, different angles) to exploit semantic search breadth
 4. Sub-agents return full text + reference codes; you synthesize and deduplicate in the main context
 5. If the user references a specific book/page, optionally spawn an Explore agent to locate the passage in `books/<lang>/`

@@ -118,18 +118,6 @@ def setup_env_file():
         print("[OK] .env file exists")
 
 
-def download_embedding_model(venv_dir: Path):
-    """Pre-download the embedding model."""
-    python = get_python(venv_dir)
-    print("Downloading embedding model (first run only, ~2GB)...")
-    subprocess.run([
-        python, "-c",
-        "from sentence_transformers import SentenceTransformer; "
-        "SentenceTransformer('BAAI/bge-m3')",
-    ], check=True, capture_output=True)
-    print("[OK] Embedding model ready")
-
-
 def download_language(lang: str):
     """Download and extract a language data package (snapshots + books)."""
     url = PACKAGE_URL.format(lang=lang)
@@ -207,7 +195,6 @@ def main():
     venv_dir = setup_venv()
     install_deps(venv_dir)
     setup_env_file()
-    download_embedding_model(venv_dir)
 
     # Download language packages if requested
     if args.lang:
@@ -221,6 +208,8 @@ def main():
 
     print()
     print("=== Setup complete ===")
+    if not os.environ.get("OPENAI_API_KEY", "").strip():
+        print("WARNING: OPENAI_API_KEY is not set. Search queries will fail until you add it to .env.")
     print("Next steps:")
 
     import urllib.request as ur

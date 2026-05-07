@@ -54,7 +54,7 @@ python scripts/search.py "su consulta" --lang es
 python scripts/search.py "query" --lang all
 
 # Filter by book
-python scripts/search.py "health reform" --book MH --top-k 10
+python scripts/search.py "health reform" --book MH --page-size 10
 
 # JSON output (best for processing results)
 python scripts/search.py "second coming" --json
@@ -62,8 +62,8 @@ python scripts/search.py "second coming" --json
 
 ## Architecture
 
-- `egw_corpus/vector_store.py` — Qdrant client + local embeddings (bge-m3)
-- `scripts/search.py` — CLI search tool (`--lang`, `--book`, `--top-k`, `--json`)
+- `egw_corpus/vector_store.py` — Qdrant client + OpenAI query embeddings
+- `scripts/search.py` — CLI search tool (`--lang`, `--book`, `--page-size`, `--page`, `--json`)
 - `snapshots/` — Pre-built Qdrant snapshots (auto-restored by `start.py`)
 - `books/<lang>/` — Raw text files of each book (with reference codes)
 - `books/<lang>/` filenames indicate book abbreviations (e.g., `GC.txt` = The Great Controversy)
@@ -82,7 +82,7 @@ python scripts/search.py "second coming" --json
 For thorough topical research, run multiple search queries in parallel using sub-agents or background tasks. This keeps the main context clean for synthesis:
 
 1. **Launch 2–3 parallel search tasks**, each with different query phrasings
-2. Each task runs: `source venv/bin/activate && source .env && python scripts/search.py "query" --top-k 15 --json`
+2. Each task runs: `source venv/bin/activate && source .env && python scripts/search.py "query" --page-size 15 --json`
 3. Vary phrasing across tasks (synonyms, paraphrases, different angles) to exploit semantic search breadth
 4. Collect full text + reference codes from all tasks, then synthesize and deduplicate
 5. If the user references a specific book/page, read the file directly from `books/<lang>/`
@@ -90,7 +90,7 @@ For thorough topical research, run multiple search queries in parallel using sub
 ## Environment
 
 - Qdrant URL configured in `.env` (managed by `start.py`/`stop.py`)
-- Embeddings are local (BAAI/bge-m3) — no API key needed
+- `OPENAI_API_KEY` is required for search queries
 - Collections: `egw_corpus_<lang>` (e.g., `egw_corpus_en`, `egw_corpus_es`)
 
 

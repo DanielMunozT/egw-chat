@@ -30,7 +30,7 @@ cd egw-chat
 python setup.py --lang en
 ```
 
-This creates a Python virtual environment, installs dependencies, downloads the embedding model (~120MB), and downloads the English language package (books + search index).
+This creates a Python virtual environment, installs dependencies, and downloads the English language package (books + search index).
 
 Available languages: `en` (English), `es` (Spanish), `pt` (Portuguese).
 
@@ -126,7 +126,9 @@ python scripts/search.py "query" [options]
 Options:
   --lang LANG     Language: en, es, pt, or "all" (default: en)
   --book ABBR     Filter by book abbreviation (e.g., GC, DA, SC)
-  --top-k N       Number of results (default: 8)
+  --page-size N   Results per page (default: 8)
+  --page N        Page number (default: 1)
+  --offset N      Optional raw offset
   --json          Output as JSON
   --qdrant-url    Qdrant URL (default: http://localhost:6333)
 ```
@@ -212,6 +214,7 @@ python chat.py --model qwen2.5:3b    # faster on limited hardware
 
 **No results**: Make sure Qdrant is running (`python start.py`) and the snapshot was restored. Check `docker logs qdrant-egw`.
 
-**Slow first query**: The embedding model (~120MB) is downloaded on first use. Subsequent queries are fast (~200ms).
+**Search fails immediately**: Make sure `OPENAI_API_KEY` is set in `.env` and your environment has outbound network access.
 
 **Ollama not running**: If `chat.py` says Ollama is not running, start it with `ollama serve` or `sudo systemctl start ollama`.
+Before searching, set `OPENAI_API_KEY` in `.env`. Query embeddings now use OpenAI synchronously, while the downloaded Qdrant snapshots remain local.

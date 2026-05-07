@@ -19,7 +19,9 @@ def search_single(args, lang: str) -> list[dict]:
 
     results = indexer.search(
         query=args.query,
-        limit=args.top_k,
+        page_size=args.page_size,
+        page=args.page,
+        offset=args.offset,
         must_match=filters if filters else None,
     )
     for r in results:
@@ -31,7 +33,9 @@ def search_single(args, lang: str) -> list[dict]:
 def main():
     parser = argparse.ArgumentParser(description="Search EGW writings")
     parser.add_argument("query", help="Natural language search query")
-    parser.add_argument("--top-k", type=int, default=8, help="Number of results (default: 8)")
+    parser.add_argument("--page-size", type=int, default=8, help="Results per page (default: 8)")
+    parser.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
+    parser.add_argument("--offset", type=int, default=None, help="Optional raw offset")
     parser.add_argument("--book", help="Filter by book abbreviation (e.g. GC, DA, SC)")
     parser.add_argument("--lang", default="en",
                         help="Language code (en, es, pt) or 'all' for multi-lang search")
@@ -53,7 +57,9 @@ def main():
         for lang in langs:
             all_results.extend(search_single(args, lang))
         all_results.sort(key=lambda r: r["score"], reverse=True)
-        results = all_results[: args.top_k]
+        page_size = max(1, args.page_size)
+        offset = args.offset if args.offset is not None else (max(1, args.page) - 1) * page_size
+        results = all_results[offset: offset + page_size]
     else:
         results = search_single(args, args.lang)
 

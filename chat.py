@@ -18,11 +18,8 @@ import os
 import sys
 import threading
 import time
-import warnings
 
 import requests
-
-warnings.filterwarnings("ignore", message=".*pooling.*fastembed.*")
 
 # ---------------------------------------------------------------------------
 # Config
@@ -91,10 +88,10 @@ def get_indexer(lang: str = "en") -> QdrantIndexer:
     return _indexer_cache[lang]
 
 
-def search_corpus(query: str, lang: str = "en", top_k: int = 5) -> list[dict]:
+def search_corpus(query: str, lang: str = "en", page_size: int = 5) -> list[dict]:
     """Run semantic search, return raw results."""
     indexer = get_indexer(lang)
-    return indexer.search(query=query, limit=top_k)
+    return indexer.search(query=query, page_size=page_size)
 
 
 def format_results(results: list[dict]) -> str:
@@ -250,7 +247,7 @@ def main():
     parser = argparse.ArgumentParser(description="Chat with EGW research assistant (local LLM)")
     parser.add_argument("--model", default=DEFAULT_MODEL,
                         help=f"Ollama model to use (default: {DEFAULT_MODEL})")
-    parser.add_argument("--top-k", type=int, default=5,
+    parser.add_argument("--page-size", type=int, default=5,
                         help="Results per search query (default: 5)")
     args = parser.parse_args()
 
@@ -340,14 +337,14 @@ def main():
         all_results = []
         seen_ids = set()
         for q in queries:
-            results = search_corpus(q, lang=lang, top_k=args.top_k)
+            results = search_corpus(q, lang=lang, page_size=args.page_size)
             for r in results:
                 rid = r["id"]
                 if rid not in seen_ids:
                     seen_ids.add(rid)
                     all_results.append(r)
         all_results.sort(key=lambda r: r["score"], reverse=True)
-        all_results = all_results[:args.top_k + 3]
+        all_results = all_results[:args.page_size + 3]
         spinner.stop()
 
         print(f"\033[2m  {len(all_results)} passages found\033[0m")

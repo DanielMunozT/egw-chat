@@ -44,6 +44,7 @@ Install rules:
 - Clone the repository: git clone https://github.com/DanielMunozT/egw-chat.git
 - Change into the directory and run setup with my chosen languages:
   python setup.py --lang <my-languages>
+- Make sure `.env` contains `OPENAI_API_KEY` before testing search.
 - After setup, read INSTALL.md, README.md, and GEMINI.md inside the directory before continuing.
 - Run: python start.py
 - Verify that the install works by running a small test search.
