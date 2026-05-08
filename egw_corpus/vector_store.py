@@ -286,6 +286,33 @@ class QdrantIndexer:
             )
         return out
 
+    def search_page(
+        self,
+        query: str,
+        page_size: int = 8,
+        page: int = 1,
+        offset: int | None = None,
+        must_match: typing.Optional[dict[str, typing.Any]] = None,
+    ) -> dict[str, typing.Any]:
+        page_info = resolve_pagination(page_size=page_size, page=page, offset=offset)
+        results = self.search(
+            query=query,
+            page_size=page_info["page_size"],
+            page=page_info["page"],
+            offset=page_info["offset"],
+            must_match=must_match,
+        )
+        more_results_possible = len(results) == page_info["page_size"]
+        return {
+            "page_size": page_info["page_size"],
+            "page": page_info["page"],
+            "offset": page_info["offset"],
+            "next_page": page_info["page"] + 1 if more_results_possible else None,
+            "next_offset": page_info["offset"] + page_info["page_size"] if more_results_possible else None,
+            "more_results_possible": more_results_possible,
+            "results": results,
+        }
+
     def list_language_collections(self) -> list[str]:
         """Return language codes for all egw_corpus_* collections."""
         prefix = f"{self.COLLECTION_PREFIX}_"
@@ -307,6 +334,7 @@ class QdrantIndexer:
             self.client.close()
 
 
+# Backwards-compatible alias
 LocalQdrantIndexer = QdrantIndexer
 
 
@@ -315,6 +343,7 @@ def chunk_text(
     chunk_size: int = 1200,
     overlap: int = 200,
 ) -> list[str]:
+    """Legacy fixed-size chunking helper."""
     if not text:
         return []
     normalized = " ".join(str(text).split())
@@ -329,4 +358,263 @@ def chunk_text(
             chunks.append(part)
         if end >= len(normalized):
             break
+    return chunks
+
+
+_REFCODE_PATTERN = re.compile(
+    r"\[(?:\d*\w+, )?((?:Lt|Ms) \d+, \d{4}(?:, par\. \d+)?)\]"
+    r"|"
+    r"\[(\d*[A-Z]\w* [\divxlc][\w.]*)\]"
+)
+
+
+def _extract_refcodes(text: str) -> list[str]:
+    refcodes: list[str] = []
+    for match in _REFCODE_PATTERN.finditer(text):
+        ref = (match.group(1) or match.group(2) or "").strip()
+        if ref and ref not in refcodes:
+            refcodes.append(ref)
+    return refcodes
+
+
+def _strip_refcodes(text: str) -> str:
+    return _REFCODE_PATTERN.sub("", text)
+
+
+def _normalize_text(text: str) -> str:
+    text = (text or "").replace("\r\n", "\n").replace("\r", "\n").replace("\u00A0", " ")
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def _clean_block_text(text: str) -> str:
+    text = _strip_refcodes(text)
+    text = re.sub(r"^#\s*(?:Abbreviation|Author):.*$", "", text, flags=re.M)
+    text = re.sub(r"^#\s+", "", text, flags=re.M)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _is_heading(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped:
+        return False
+    if stripped.startswith("#"):
+        return True
+    if re.match(r"^(Item|Chapter|Section)\s+\d+[A-Za-z.\-]*\b", stripped):
+        return True
+    words = stripped.split()
+    return (
+        len(words) <= 12
+        and len(stripped) <= 90
+        and stripped.upper() == stripped
+        and any(ch.isalpha() for ch in stripped)
+    )
+
+
+def _iter_blocks(text: str) -> list[dict[str, typing.Any]]:
+    lines = _normalize_text(text).split("\n")
+    blocks: list[dict[str, typing.Any]] = []
+    current: list[str] = []
+    start_line = 1
+    for idx, line in enumerate(lines, start=1):
+        if line.strip():
+            if not current:
+                start_line = idx
+            current.append(line)
+            continue
+        if current:
+            blocks.append(
+                {
+                    "text": "\n".join(current),
+                    "line_start": start_line,
+                    "line_end": idx - 1,
+                }
+            )
+            current = []
+    if current:
+        blocks.append(
+            {
+                "text": "\n".join(current),
+                "line_start": start_line,
+                "line_end": len(lines),
+            }
+        )
+    return blocks
+
+
+def _split_sentences(text: str) -> list[str]:
+    sentences = re.split(r'(?<=[.!?;:"")\]])\s+', text)
+    return [sentence.strip() for sentence in sentences if sentence.strip()]
+
+
+def _split_to_token_windows(text: str, max_tokens: int, encoder: typing.Any | None) -> list[str]:
+    if not text:
+        return []
+    encoder = encoder if encoder is not None else tokenizer()
+    if encoder is None:
+        words = text.split()
+        return [
+            " ".join(words[i:i + max_tokens]).strip()
+            for i in range(0, len(words), max_tokens)
+            if words[i:i + max_tokens]
+        ]
+    token_ids = encoder.encode(text)
+    windows = []
+    for i in range(0, len(token_ids), max_tokens):
+        windows.append(encoder.decode(token_ids[i:i + max_tokens]).strip())
+    return [window for window in windows if window]
+
+
+def _split_oversized_segment(text: str, max_tokens: int, encoder: typing.Any | None) -> list[str]:
+    if count_tokens(text, encoder) <= max_tokens:
+        return [text.strip()]
+    parts: list[str] = []
+    current: list[str] = []
+    for sentence in _split_sentences(text):
+        candidate = " ".join(current + [sentence]).strip()
+        if current and count_tokens(candidate, encoder) > max_tokens:
+            parts.append(" ".join(current).strip())
+            current = [sentence]
+        else:
+            current.append(sentence)
+    if current:
+        parts.append(" ".join(current).strip())
+    final_parts: list[str] = []
+    for part in parts:
+        if count_tokens(part, encoder) <= max_tokens:
+            final_parts.append(part)
+        else:
+            final_parts.extend(_split_to_token_windows(part, max_tokens, encoder))
+    return [part for part in final_parts if part]
+
+
+def _compose_chunk_text(segments: list[dict[str, typing.Any]]) -> str:
+    if not segments:
+        return ""
+    heading_path = list(segments[0].get("heading_path", []) or [])
+    prefix = " > ".join(heading_path[-3:])
+    body = "\n\n".join(seg["text"] for seg in segments if seg.get("text"))
+    if prefix and body:
+        return f"{prefix}\n\n{body}"
+    if prefix:
+        return prefix
+    return body
+
+
+def _build_chunk(segments: list[dict[str, typing.Any]]) -> dict[str, typing.Any]:
+    chunk_text = _compose_chunk_text(segments)
+    heading_path = list(segments[0].get("heading_path", []) or []) if segments else []
+    prefix = " > ".join(heading_path[-3:])
+    cursor = len(prefix) + 2 if prefix and chunk_text.startswith(prefix + "\n\n") else 0
+    spans: list[dict[str, typing.Any]] = []
+    refcodes: list[str] = []
+    for index, seg in enumerate(segments):
+        if index > 0:
+            cursor += 2
+        seg_start = cursor
+        cursor += len(seg["text"])
+        for ref in seg.get("refcodes", []):
+            if ref not in refcodes:
+                refcodes.append(ref)
+            spans.append({"ref": ref, "start": seg_start, "end": cursor})
+    return {
+        "text": chunk_text,
+        "refcodes": refcodes,
+        "refcode_spans": spans,
+        "heading_path": heading_path,
+        "chunk_line_start": min(seg["line_start"] for seg in segments),
+        "chunk_line_end": max(seg["line_end"] for seg in segments),
+    }
+
+
+def _tail_overlap_segments(
+    segments: list[dict[str, typing.Any]],
+    overlap_tokens: int,
+    encoder: typing.Any | None,
+) -> list[dict[str, typing.Any]]:
+    if not segments or overlap_tokens <= 0:
+        return []
+    tail: list[dict[str, typing.Any]] = []
+    for seg in reversed(segments):
+        if tail and seg.get("heading_path") != tail[0].get("heading_path"):
+            break
+        tail.insert(0, dict(seg))
+        if count_tokens(_compose_chunk_text(tail), encoder) >= overlap_tokens:
+            break
+    return tail
+
+
+def chunk_paragraphs(
+    text: str,
+    chunk_tokens: int = 800,
+    overlap_tokens: int = 400,
+) -> list[dict[str, typing.Any]]:
+    """Token-based chunking that preserves refcodes and line ranges."""
+    if not text:
+        return []
+
+    encoder = tokenizer()
+    heading_path: list[str] = []
+    segments: list[dict[str, typing.Any]] = []
+
+    for block in _iter_blocks(text):
+        raw_block = block["text"]
+        stripped = raw_block.strip()
+        if not stripped:
+            continue
+        if _is_heading(stripped):
+            clean_heading = _clean_block_text(stripped)
+            if clean_heading:
+                heading_path.append(clean_heading)
+                heading_path = heading_path[-3:]
+            continue
+
+        clean_text = _clean_block_text(raw_block)
+        if not clean_text:
+            continue
+        refcodes = _extract_refcodes(raw_block)
+        for part in _split_oversized_segment(clean_text, chunk_tokens, encoder):
+            segments.append(
+                {
+                    "text": part,
+                    "refcodes": refcodes,
+                    "line_start": block["line_start"],
+                    "line_end": block["line_end"],
+                    "heading_path": list(heading_path),
+                }
+            )
+
+    chunks: list[dict[str, typing.Any]] = []
+    current: list[dict[str, typing.Any]] = []
+    previous_text = ""
+
+    for seg in segments:
+        if current and seg.get("heading_path") != current[0].get("heading_path"):
+            chunk = _build_chunk(current)
+            if chunk["text"] and chunk["text"] != previous_text:
+                chunks.append(chunk)
+                previous_text = chunk["text"]
+            current = []
+
+        candidate = current + [seg]
+        if current and count_tokens(_compose_chunk_text(candidate), encoder) > chunk_tokens:
+            chunk = _build_chunk(current)
+            if chunk["text"] and chunk["text"] != previous_text:
+                chunks.append(chunk)
+                previous_text = chunk["text"]
+            current = _tail_overlap_segments(current, overlap_tokens, encoder)
+            if current and seg.get("heading_path") != current[0].get("heading_path"):
+                current = []
+            while current and count_tokens(_compose_chunk_text(current + [seg]), encoder) > chunk_tokens:
+                current = current[1:]
+            candidate = current + [seg]
+        current = candidate
+
+    if current:
+        chunk = _build_chunk(current)
+        if chunk["text"] and chunk["text"] != previous_text:
+            chunks.append(chunk)
+
     return chunks
